@@ -9,11 +9,19 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+const (
+	defaultConfigFile = "./config.yml"
+)
+
 // Load fills in the specified struct with configuration loaded from YAML, env vars, etc.
 // It purposely ignores any errors from attempting to load from a specific source.
-func Load(appName string, struc interface{}) {
+func Load(appName string, file string, struc interface{}) {
+	if file == "" {
+		file = defaultConfigFile
+	}
+
 	// overlay from local YAML config file
-	FromYamlFile("./config.yml", struc)
+	FromYamlFile(file, struc)
 
 	// overlay from environment variables
 	FromEnvironment(appName, struc)

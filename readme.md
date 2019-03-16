@@ -38,7 +38,7 @@ var cfg struct {
 }
 ```
 
-YAML File
+### YAML File
 
 A config.yml file overrides defaults.
 
@@ -62,5 +62,5 @@ export MYAPP_TIMEOUT=1m30s
 Command line arguments override environment variables.
 
 ```bash
-./myapp --address=http://example.com/home --timeout=2m
+./myapp address=http://example.com/home timeout=2m
 ```

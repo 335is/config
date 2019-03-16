@@ -18,7 +18,7 @@ func main() {
 	os.Setenv("MYAPP_TIMEOUT", "1m30s")
 
 	c := cfg{}
-	config.Load("MYAPP", &c)
+	config.Load("MYAPP", "", &c)
 	fmt.Printf("Address: %s\n", c.Address)
 	fmt.Printf("Timeout: %v\n", c.Timeout)
 }

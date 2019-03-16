@@ -28,7 +28,7 @@ var badYml = "This is really NOT YAML."
 // Load - default settings
 func TestLoadDefault(t *testing.T) {
 	cfg := Test{}
-	Load("FUNAPP", &cfg)
+	Load("FUNAPP", "", &cfg)
 	assert.NotNil(t, cfg)
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
@@ -209,7 +209,7 @@ func TestFromArgumentsInvalidFieldName(t *testing.T) {
 // non-parsable parameter value for the type
 func TestFromArgumentsInvalidValue(t *testing.T) {
 	os.Args = []string{
-		"--Timeout=SomeTime",
+		"Timeout=SomeTime",
 	}
 
 	c := cfg{}
