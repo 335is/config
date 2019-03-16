@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/mcuadros/go-lookup"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -44,4 +45,37 @@ func FromYamlFile(path string, struc interface{}) error {
 //		MYAPP_CONSUL_ADDRESS
 func FromEnvironment(appName string, struc interface{}) error {
 	return envconfig.Process(strings.ToUpper(appName), struc)
+}
+
+// FromArguments extracts settings from a list of arguments such as supplied on the command line
+//
+// All args strings (command line parameters) must be in the form key.path=value,
+// where key.path is a period '.' or underscore '_' separated path to the struct member.
+// For example:
+//	consul.address=http://localhost:8500
+//	consul_address=http://localhost:8500
+func FromArguments(args []string, struc interface{}) error {
+	for _, arg := range args {
+		kv := strings.Split(arg, "=")
+		if len(kv) != 2 {
+			continue
+		}
+
+		// transform period separators into underscores
+		key := strings.ReplaceAll(kv[0], "_", ".")
+
+		// find struct member matching key path
+		value, err := lookup.LookupString(struc, key)
+		if err != nil {
+			return err
+		}
+
+		// unmarshal the string into the struct field
+		err = UnmarshalValue(kv[1], value)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

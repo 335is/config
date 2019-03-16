@@ -14,6 +14,12 @@
   version = "v1.3.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/mcuadros/go-lookup"
+  packages = ["."]
+  revision = "5650f26be7675b629fff8356a50d906fa03e9c8b"
+
+[[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
@@ -34,6 +40,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9d95a7f5e92e8f694499d9bb82c2849cfb17e9c6211aa72772d92645b5d9f7f7"
+  inputs-digest = "90a4b321ed497bc3bd6d96dec0757b025f5633b96c647035a843570a19f47e94"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -40,3 +40,11 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/alexflint/go-arg"
+  version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mcuadros/go-lookup"

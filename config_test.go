@@ -1,6 +1,6 @@
 package config
 
-	import (
+import (
 	"io/ioutil"
 	"os"
 	"testing"
@@ -141,9 +141,82 @@ func TestFromEnvironmentDefault(t *testing.T) {
 
 	cfg := Test{}
 	err := FromEnvironment("FUNAPP", &cfg)
-	assert.Nil(t, err, "Expected no error")
+	assert.Nil(t, err)
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
 	assert.Equal(t, true, cfg.Passive)
 	assert.Equal(t, cfg.Period, time.Minute)
+}
+
+type cfg struct {
+	Address string        `yaml:"address"`
+	Timeout time.Duration `yaml:"timeout"`
+	Sub     sub
+}
+
+type sub struct {
+	Enabled bool `yaml:"enabled"`
+	Level   int  `yaml:"level"`
+}
+
+func TestFromArguments(t *testing.T) {
+	os.Args = []string{
+		"Address=http://example.com",
+		"Timeout=1h20m30s",
+		"Sub.Enabled=true",
+		"Sub.Level=42",
+	}
+
+	c := cfg{}
+	err := FromArguments(os.Args, &c)
+	assert.Nil(t, err)
+	assert.Equal(t, c.Address, "http://example.com")
+	assert.Equal(t, c.Timeout, (time.Hour)+(20*time.Minute)+(30*time.Second))
+	assert.Equal(t, c.Sub.Enabled, true)
+	assert.Equal(t, c.Sub.Level, 42)
+}
+
+// invalid parameter format is ignored
+func TestFromArgumentsInvalidParameter(t *testing.T) {
+	os.Args = []string{
+		"Address:http://example.com",
+	}
+
+	c := cfg{}
+	err := FromArguments(os.Args, &c)
+	assert.Nil(t, err)
+	assert.Equal(t, c.Address, "")
+	assert.Equal(t, c.Timeout, time.Duration(0))
+	assert.Equal(t, c.Sub.Enabled, false)
+	assert.Equal(t, c.Sub.Level, 0)
+}
+
+// non-existant struct field name
+func TestFromArgumentsInvalidFieldName(t *testing.T) {
+	os.Args = []string{
+		"Hey_dress=http://example.com",
+	}
+
+	c := cfg{}
+	err := FromArguments(os.Args, &c)
+	assert.NotNil(t, err)
+	assert.Equal(t, c.Address, "")
+	assert.Equal(t, c.Timeout, time.Duration(0))
+	assert.Equal(t, c.Sub.Enabled, false)
+	assert.Equal(t, c.Sub.Level, 0)
+}
+
+// non-parsable parameter value for the type
+func TestFromArgumentsInvalidValue(t *testing.T) {
+	os.Args = []string{
+		"--Timeout=SomeTime",
+	}
+
+	c := cfg{}
+	err := FromArguments(os.Args, &c)
+	assert.NotNil(t, err)
+	assert.Equal(t, c.Address, "")
+	assert.Equal(t, c.Timeout, time.Duration(0))
+	assert.Equal(t, c.Sub.Enabled, false)
+	assert.Equal(t, c.Sub.Level, 0)
 }
