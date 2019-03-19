@@ -14,7 +14,7 @@ const (
 	defaultConfigFile = "./config.yml"
 )
 
-// Load fills in the specified struct with configuration loaded from YAML, env vars, etc.
+// Load fills in the specified struct with configuration loaded from YAML, env vars, and command line arguments.
 // It purposely ignores any errors from attempting to load from a specific source.
 func Load(appName string, file string, struc interface{}) {
 	if file == "" {
@@ -49,29 +49,15 @@ func FromYamlFile(path string, struc interface{}) error {
 }
 
 // FromEnvironment extracts settings from environment variables.
-//
 // We expect them to be named upper case, underscore separated, and prefixed with appName.
-//
-// For example:
-// MYAPP_SERVER_ADDRESS=http://example.com
+//	MYAPP_SERVER_ADDRESS=http://example.com
 func FromEnvironment(appName string, struc interface{}) error {
 	return envconfig.Process(strings.ToUpper(appName), struc)
 }
 
 // FromArguments extracts settings from a list of arguments such as those supplied on the command line.
-//
 // All args strings must be in the form key.path=value, where key.path is a period '.' or underscore '_' separated path to the struct member.
-//
-// For example:
-// type Server struct {
-//    Address string
-//    Port int
-// }
-// type cfg struct {
-//    Server server
-// }
-// server.address=http://example.com
-// server_port=8080
+//	server.address=http://example.com
 func FromArguments(args []string, struc interface{}) error {
 	for _, arg := range args {
 		kv := strings.Split(arg, "=")

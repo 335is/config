@@ -24,10 +24,8 @@ var (
 // Unmarshal attempts to convert string 's' into a value of type 'v'.
 // It infers the type from v itself, and uses the appropriate conversion routine.
 // This only supports the common basic types, slices, and maps, but not structs.
-// Supported types:
-//
-//	Type									Examples
-//	-----------------------------------		---------------------------------------------
+//	Type                                    Examples
+//	-----------------------------------     ---------------------------------------------
 //	string                                  "", "some string"
 //	bool                                    "0", "false", "F", "1", "true", "T"
 //	time.Duration                           "1h22m33s", "6h"
@@ -41,8 +39,9 @@ func Unmarshal(s string, v interface{}) error {
 	return UnmarshalValue(s, rv)
 }
 
-// UnmarshalValue converts a string representation of a value and writes it into rv.
-// The type is inferred on the type of rv.
+// UnmarshalValue converts a string representation of a value of the type wrapped by rv, and writes it into rv.
+// The type is inferred from the type of rv. This has the same functionality as Unmarshal()
+// except that it takes a reflect.Value instead of an interface.
 func UnmarshalValue(s string, rv reflect.Value) error {
 	if rv.Kind() == reflect.Ptr {
 		if rv.IsNil() {
