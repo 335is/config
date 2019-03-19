@@ -28,14 +28,14 @@ var (
 //
 //	Type									Examples
 //	-----------------------------------		---------------------------------------------
-//	string									"", "some string"
-//	bool									"0", "false", "F", "1", "true", "T"
-//	time.Duration							"1h22m33s", "6h"
-//	int, int8, int16, int32, int64			"12", "-77"
-//	uint, uint8, uint16, uint32, uint64		"42", "0xDEADBEEF"
-//	float32, float64						"345.71, "-3.14159"
-//	slice									"super, duper", "12, 20, 36"
-//	map										"good:26, bad:37, ugly:55", "1:true, 7:false"
+//	string                                  "", "some string"
+//	bool                                    "0", "false", "F", "1", "true", "T"
+//	time.Duration                           "1h22m33s", "6h"
+//	int, int8, int16, int32, int64          "12", "-77"
+//	uint, uint8, uint16, uint32, uint64     "42", "0xDEADBEEF"
+//	float32, float64                        "345.71, "-3.14159"
+//	slice                                   "super, duper", "12, 20, 36"
+//	map                                     "good:26, bad:37, ugly:55", "1:true, 7:false"
 func Unmarshal(s string, v interface{}) error {
 	rv := reflect.ValueOf(v)
 	return UnmarshalValue(s, rv)

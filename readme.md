@@ -23,7 +23,7 @@ Nested structs are supported as each setting specifies its full path to the asso
 
 ## How to Use
 
-See the the examples folder and the unit tests for how to define and consume your configuration.
+See the examples folder and the unit tests for how to define and consume your configuration.
 
 ## Samples
 

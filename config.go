@@ -2,6 +2,7 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/kelseyhightower/envconfig"
@@ -25,14 +26,17 @@ func Load(appName string, file string, struc interface{}) {
 
 	// overlay from environment variables
 	FromEnvironment(appName, struc)
+
+	// overlay from command line args
+	FromArguments(os.Args[1:], struc)
 }
 
-// FromYaml extracts settings from a YAML string
+// FromYaml extracts settings from a YAML string.
 func FromYaml(yml []byte, struc interface{}) error {
 	return yaml.Unmarshal(yml, struc)
 }
 
-// FromYamlFile extracts settings from a YAML file
+// FromYamlFile extracts settings from a YAML file.
 func FromYamlFile(path string, struc interface{}) error {
 	// read YAML text file into a string
 	yml, err := ioutil.ReadFile(path)
@@ -45,23 +49,29 @@ func FromYamlFile(path string, struc interface{}) error {
 }
 
 // FromEnvironment extracts settings from environment variables.
-// We expect them to be named:
-//		upper case
-//		underscore separated
-//		prefixed with appName
+//
+// We expect them to be named upper case, underscore separated, and prefixed with appName.
+//
 // For example:
-//		MYAPP_CONSUL_ADDRESS
+// MYAPP_SERVER_ADDRESS=http://example.com
 func FromEnvironment(appName string, struc interface{}) error {
 	return envconfig.Process(strings.ToUpper(appName), struc)
 }
 
-// FromArguments extracts settings from a list of arguments such as supplied on the command line
+// FromArguments extracts settings from a list of arguments such as those supplied on the command line.
 //
-// All args strings (command line parameters) must be in the form key.path=value,
-// where key.path is a period '.' or underscore '_' separated path to the struct member.
+// All args strings must be in the form key.path=value, where key.path is a period '.' or underscore '_' separated path to the struct member.
+//
 // For example:
-//	consul.address=http://localhost:8500
-//	consul_address=http://localhost:8500
+// type Server struct {
+//    Address string
+//    Port int
+// }
+// type cfg struct {
+//    Server server
+// }
+// server.address=http://example.com
+// server_port=8080
 func FromArguments(args []string, struc interface{}) error {
 	for _, arg := range args {
 		kv := strings.Split(arg, "=")
