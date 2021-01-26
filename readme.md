@@ -13,13 +13,7 @@ Nested structs are supported as each setting specifies its full path to the asso
 
 ## Requirements
 
-### Go 1.12
-
-[Download Go](https://golang.org/dl/)
-
-### Dep 0.4.1
-
-[Dep Releases](https://github.com/golang/dep/releases/)
+### Go 1.15
 
 ## How to Use
 
