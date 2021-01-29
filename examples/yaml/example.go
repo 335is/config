@@ -15,6 +15,6 @@ type cfg struct {
 func main() {
 	c := cfg{}
 	config.Load("MYAPP", "./cfg.yml", &c)
-	fmt.Printf("Address: %s\n", c.Address)
-	fmt.Printf("Timeout: %v\n", c.Timeout)
+	s, _ := config.ToYaml(&c)
+	fmt.Printf("%s\n", s)
 }

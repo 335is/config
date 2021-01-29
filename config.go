@@ -83,3 +83,13 @@ func FromArguments(args []string, struc interface{}) error {
 
 	return nil
 }
+
+// ToYaml marshals the struc into a YAML string.
+func ToYaml(struc interface{}) (string, error) {
+	buff, err := yaml.Marshal(struc)
+	if err == nil {
+		return "---\n" + string(buff), nil
+	}
+
+	return "", err
+}

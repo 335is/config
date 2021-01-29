@@ -12,31 +12,48 @@ import (
 type Test struct {
 	Address string        `yaml:"address"`
 	Count   int           `yaml:"count"`
-	Passive bool          `yaml:"passive" default:"true"`
-	Period  time.Duration `yaml:"period" default:"1m"`
+	Passive bool          `yaml:"passive"`
+	Period  time.Duration `yaml:"period"`
 }
 
-var yml = `
----
+var yml = `---
 address: http://example.com/
 count: 23
 passive: false
 period: 2m22s
 `
-var badYml = "This is really NOT YAML."
+var notYml = "This is really NOT YAML."
 
-// Load - default settings
-func TestLoadDefault(t *testing.T) {
+// When there is no found YAML/ENV VARS/command line args, it should not override initialized struct members
+func TestLoadEmptyConfigNoInitialization(t *testing.T) {
 	cfg := Test{}
 	Load("FUNAPP", "", &cfg)
 	assert.NotNil(t, cfg)
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
-	assert.Equal(t, true, cfg.Passive)
-	assert.Equal(t, time.Minute, cfg.Period)
+	assert.Equal(t, false, cfg.Passive)
+	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-// FromYaml - good YAML
+// When there is no found YAML/ENV VARS/command line args, it should not override initialized struct members
+func TestLoadEmptyConfigWithInitialization(t *testing.T) {
+	tm, _ := time.ParseDuration("1m11s")
+	cfg := Test{
+		Address: "http://google.com/",
+		Count:   12,
+		Passive: true,
+		Period:  tm,
+	}
+
+	Load("FUNAPP", "", &cfg)
+	assert.NotNil(t, cfg)
+	assert.Equal(t, "http://google.com/", cfg.Address)
+	assert.Equal(t, 12, cfg.Count)
+	assert.Equal(t, true, cfg.Passive)
+	assert.Equal(t, tm, cfg.Period)
+}
+
+// good YAML string
 func TestFromYaml(t *testing.T) {
 	cfg := Test{}
 	err := FromYaml([]byte(yml), &cfg)
@@ -48,18 +65,18 @@ func TestFromYaml(t *testing.T) {
 	assert.Equal(t, (2*time.Minute)+(22*time.Second), cfg.Period)
 }
 
-// FromYaml - bad YAML
+// bad YAML string
 func TestFromYamlBad(t *testing.T) {
 	cfg := Test{}
-	err := FromYaml([]byte(badYml), &cfg)
+	err := FromYaml([]byte(notYml), &cfg)
 	assert.NotNil(t, err, "Expected an error because of bad YAML")
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
 	assert.Equal(t, false, cfg.Passive)
-	assert.Equal(t, cfg.Period, time.Duration(0))
+	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-// FromYamlFile - good YAML file
+// good YAML file
 func TestFromYamlFile(t *testing.T) {
 	file, err := ioutil.TempFile(".", "yaml_test")
 	assert.Nil(t, err, "Got error trying to create temporary YAML file")
@@ -82,17 +99,17 @@ func TestFromYamlFile(t *testing.T) {
 	assert.Equal(t, (2*time.Minute)+(22*time.Second), cfg.Period)
 }
 
-// FromYamlFile - bad YAML file
+// bad YAML file
 func TestFromYamlFileBad(t *testing.T) {
 	file, err := ioutil.TempFile(".", "yaml_test_bad")
 	assert.Nil(t, err, "Got error trying to create temporary YAML file")
 	assert.NotNil(t, file, "Failed to create temporary YAML file")
 	defer os.Remove(file.Name())
 
-	l, err := file.Write([]byte(badYml))
+	l, err := file.Write([]byte(notYml))
 	file.Close()
 	assert.Nil(t, err, "Got error trying to write contents to temporary YAML file")
-	assert.Equal(t, len(badYml), l, "Mismatched bytes written to temporary YAML file")
+	assert.Equal(t, len(notYml), l, "Mismatched bytes written to temporary YAML file")
 	assert.FileExists(t, file.Name(), "Temporary YAML file doesn't exist")
 
 	cfg := Test{}
@@ -101,10 +118,10 @@ func TestFromYamlFileBad(t *testing.T) {
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
 	assert.Equal(t, false, cfg.Passive)
-	assert.Equal(t, cfg.Period, time.Duration(0))
+	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-// FromYamlFile - missing YAML file
+// missing YAML file
 func TestFromYamlFileNoFile(t *testing.T) {
 	cfg := Test{}
 	err := FromYamlFile("bogus_file_name", &cfg)
@@ -112,10 +129,25 @@ func TestFromYamlFileNoFile(t *testing.T) {
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
 	assert.Equal(t, false, cfg.Passive)
-	assert.Equal(t, cfg.Period, time.Duration(0))
+	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-// FromEnvironment - env vars exist
+// config struct to YAML string
+func TestToYaml(t *testing.T) {
+	tm, _ := time.ParseDuration("2m22s")
+	cfg := Test{
+		Address: "http://example.com/",
+		Count:   23,
+		Passive: false,
+		Period:  tm,
+	}
+
+	s, err := ToYaml(&cfg)
+	assert.Nil(t, err, "Expected no error")
+	assert.Equal(t, yml, s)
+}
+
+// env vars exist
 func TestFromEnvironment(t *testing.T) {
 	os.Setenv("FUNAPP_ADDRESS", "http://example.com/funapp")
 	os.Setenv("FUNAPP_COUNT", "34")
@@ -132,7 +164,7 @@ func TestFromEnvironment(t *testing.T) {
 	assert.Equal(t, (11*time.Hour)+(11*time.Minute)+(11*time.Second), cfg.Period)
 }
 
-// FromEnvironment - only required are set, rest should be default values
+// only required are set, rest should be default values
 func TestFromEnvironmentDefault(t *testing.T) {
 	os.Unsetenv("FUNAPP_ADDRESS")
 	os.Unsetenv("FUNAPP_COUNT")
@@ -144,8 +176,8 @@ func TestFromEnvironmentDefault(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
-	assert.Equal(t, true, cfg.Passive)
-	assert.Equal(t, cfg.Period, time.Minute)
+	assert.Equal(t, false, cfg.Passive)
+	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
 type cfg struct {
@@ -159,6 +191,7 @@ type sub struct {
 	Level   int  `yaml:"level"`
 }
 
+// from command line arguments
 func TestFromArguments(t *testing.T) {
 	os.Args = []string{
 		"Address=http://example.com",
@@ -170,13 +203,13 @@ func TestFromArguments(t *testing.T) {
 	c := cfg{}
 	err := FromArguments(os.Args, &c)
 	assert.Nil(t, err)
-	assert.Equal(t, c.Address, "http://example.com")
-	assert.Equal(t, c.Timeout, (time.Hour)+(20*time.Minute)+(30*time.Second))
-	assert.Equal(t, c.Sub.Enabled, true)
-	assert.Equal(t, c.Sub.Level, 42)
+	assert.Equal(t, "http://example.com", c.Address)
+	assert.Equal(t, (time.Hour)+(20*time.Minute)+(30*time.Second), c.Timeout)
+	assert.Equal(t, true, c.Sub.Enabled)
+	assert.Equal(t, 42, c.Sub.Level)
 }
 
-// invalid parameter format is ignored
+// from command line arguments, that invalid parameter format is ignored
 func TestFromArgumentsInvalidParameter(t *testing.T) {
 	os.Args = []string{
 		"Address:http://example.com",
@@ -185,10 +218,10 @@ func TestFromArgumentsInvalidParameter(t *testing.T) {
 	c := cfg{}
 	err := FromArguments(os.Args, &c)
 	assert.Nil(t, err)
-	assert.Equal(t, c.Address, "")
-	assert.Equal(t, c.Timeout, time.Duration(0))
-	assert.Equal(t, c.Sub.Enabled, false)
-	assert.Equal(t, c.Sub.Level, 0)
+	assert.Equal(t, "", c.Address)
+	assert.Equal(t, time.Duration(0), c.Timeout)
+	assert.Equal(t, false, c.Sub.Enabled)
+	assert.Equal(t, 0, c.Sub.Level)
 }
 
 // non-existant struct field name
@@ -200,10 +233,10 @@ func TestFromArgumentsInvalidFieldName(t *testing.T) {
 	c := cfg{}
 	err := FromArguments(os.Args, &c)
 	assert.NotNil(t, err)
-	assert.Equal(t, c.Address, "")
-	assert.Equal(t, c.Timeout, time.Duration(0))
-	assert.Equal(t, c.Sub.Enabled, false)
-	assert.Equal(t, c.Sub.Level, 0)
+	assert.Equal(t, "", c.Address)
+	assert.Equal(t, time.Duration(0), c.Timeout)
+	assert.Equal(t, false, c.Sub.Enabled)
+	assert.Equal(t, 0, c.Sub.Level)
 }
 
 // non-parsable parameter value for the type
@@ -215,8 +248,8 @@ func TestFromArgumentsInvalidValue(t *testing.T) {
 	c := cfg{}
 	err := FromArguments(os.Args, &c)
 	assert.NotNil(t, err)
-	assert.Equal(t, c.Address, "")
-	assert.Equal(t, c.Timeout, time.Duration(0))
-	assert.Equal(t, c.Sub.Enabled, false)
-	assert.Equal(t, c.Sub.Level, 0)
+	assert.Equal(t, "", c.Address)
+	assert.Equal(t, time.Duration(0), c.Timeout)
+	assert.Equal(t, false, c.Sub.Enabled)
+	assert.Equal(t, 0, c.Sub.Level)
 }

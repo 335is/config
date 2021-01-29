@@ -2,7 +2,6 @@
 
 Config loads configuration settings into a struct from the following sources in this order.
 
-1. default struct values
 1. config.yml YAML file
 1. environment variables
 1. command line parameters
@@ -21,20 +20,20 @@ See the examples folder and the unit tests for how to define and consume your co
 
 ## Samples
 
-### Default
+### Struct
 
-The following cfg struct will contain our settings. Default values are coded in the tags.
+The following cfg struct will contain our settings.
 
 ```go
 var cfg struct {
-	Address string        `yaml:"address" default:"https://example.com"`
-	Timeout time.Duration `yaml:"timeout" default:"30s"`
+	Address string        `yaml:"address"`
+	Timeout time.Duration `yaml:"timeout"`
 }
 ```
 
 ### YAML File
 
-A config.yml file overrides defaults.
+A config.yml file overrides.
 
 ```yaml
 ---
@@ -44,7 +43,7 @@ timeout: 1m
 
 ### Environment Variables
 
-Environment variables override a config.yml file.
+Environment variables overrides.
 
 ```bash
 export MYAPP_ADDRESS=http://example.com/funapp
@@ -53,7 +52,7 @@ export MYAPP_TIMEOUT=1m30s
 
 ### Command Line Arguments
 
-Command line arguments override environment variables.
+Command line arguments overrides.
 
 ```bash
 ./myapp address=http://example.com/home timeout=2m
