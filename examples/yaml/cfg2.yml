@@ -1,0 +1,4 @@
+---
+http:
+  address: http://example2.com/
+  timeout: 2m22s
