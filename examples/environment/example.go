@@ -9,16 +9,16 @@ import (
 )
 
 type cfg struct {
-	Address string        `yaml:"address"`
-	Timeout time.Duration `yaml:"timeout"`
+	Address string
+	Timeout time.Duration
 }
 
 func main() {
-	os.Setenv("MYAPP_ADDRESS", "http://example.com/funapp")
-	os.Setenv("MYAPP_TIMEOUT", "1m30s")
+	os.Setenv("ADDRESS", "http://example.com/funapp")
+	os.Setenv("TIMEOUT", "1m30s")
 
 	c := cfg{}
-	config.Load("MYAPP", "", &c)
+	config.Load("", &c)
 	fmt.Printf("Address: %s\n", c.Address)
 	fmt.Printf("Timeout: %v\n", c.Timeout)
 }

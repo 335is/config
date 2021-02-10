@@ -9,11 +9,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type Test struct {
+type TestInitialization struct {
+	Address string
+	Count   int
+	Passive bool
+	Period  time.Duration
+}
+
+type TestDefaults struct {
+	Address string        `default:"http://stonewall.net"`
+	Count   int           `default:"27"`
+	Passive bool          `default:"true"`
+	Period  time.Duration `default:"20m20s"`
+}
+
+type TestYaml struct {
 	Address string        `yaml:"address"`
 	Count   int           `yaml:"count"`
 	Passive bool          `yaml:"passive"`
 	Period  time.Duration `yaml:"period"`
+}
+
+type TestEnvironment struct {
+	Address string
+	Count   int
+	Passive bool
+	Period  time.Duration
+}
+
+type TestArguments struct {
+	Address string        `yaml:"address"`
+	Timeout time.Duration `yaml:"timeout"`
+	Sub     sub
+}
+
+type sub struct {
+	Enabled bool `yaml:"enabled"`
+	Level   int  `yaml:"level"`
 }
 
 var yml = `---
@@ -24,10 +56,10 @@ period: 2m22s
 `
 var notYml = "This is really NOT YAML."
 
-// When there is no found YAML/ENV VARS/command line args, it should not override initialized struct members
+// It should not overwrite uninitialized struct members if there is no matching YAML, environment variables, or command line arguments found.
 func TestLoadEmptyConfigNoInitialization(t *testing.T) {
-	cfg := Test{}
-	Load("FUNAPP", "", &cfg)
+	cfg := TestInitialization{}
+	Load("", &cfg)
 	assert.NotNil(t, cfg)
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
@@ -35,17 +67,17 @@ func TestLoadEmptyConfigNoInitialization(t *testing.T) {
 	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-// When there is no found YAML/ENV VARS/command line args, it should not override initialized struct members
+// It should not overwrite initialized struct members if there is no matching YAML, environment variables, or command line arguments found.
 func TestLoadEmptyConfigWithInitialization(t *testing.T) {
 	tm, _ := time.ParseDuration("1m11s")
-	cfg := Test{
+	cfg := TestInitialization{
 		Address: "http://google.com/",
 		Count:   12,
 		Passive: true,
 		Period:  tm,
 	}
 
-	Load("FUNAPP", "", &cfg)
+	Load("", &cfg)
 	assert.NotNil(t, cfg)
 	assert.Equal(t, "http://google.com/", cfg.Address)
 	assert.Equal(t, 12, cfg.Count)
@@ -53,9 +85,50 @@ func TestLoadEmptyConfigWithInitialization(t *testing.T) {
 	assert.Equal(t, tm, cfg.Period)
 }
 
-// good YAML string
+// It should set values of unitialized struct members from default struct tags.
+func TestFromStructDefaultsNoInitialization(t *testing.T) {
+	cfg := TestDefaults{}
+	err := FromStructDefaults(&cfg)
+	assert.Nil(t, err, "Expected no error")
+	assert.NotNil(t, cfg)
+	assert.Equal(t, "http://stonewall.net", cfg.Address)
+	assert.Equal(t, 27, cfg.Count)
+	assert.Equal(t, true, cfg.Passive)
+	assert.Equal(t, (20*time.Minute)+(20*time.Second), cfg.Period)
+}
+
+// It should not overwrite initialized struct members from default struct tags.
+func TestFromStructDefaultsWithInitialization(t *testing.T) {
+	tm, _ := time.ParseDuration("3m33s")
+	cfg := TestDefaults{
+		Address: "http://marble.net/",
+		Count:   33,
+		Passive: true,
+		Period:  tm,
+	}
+
+	Load("", &cfg)
+	assert.NotNil(t, cfg)
+	assert.Equal(t, "http://marble.net/", cfg.Address)
+	assert.Equal(t, 33, cfg.Count)
+	assert.Equal(t, true, cfg.Passive)
+	assert.Equal(t, tm, cfg.Period)
+}
+
+func TestFromStructDefaults(t *testing.T) {
+	cfg := TestDefaults{}
+	err := FromStructDefaults(&cfg)
+	assert.Nil(t, err, "Expected no error")
+	assert.NotNil(t, cfg)
+	assert.Equal(t, "http://stonewall.net", cfg.Address)
+	assert.Equal(t, 27, cfg.Count)
+	assert.Equal(t, true, cfg.Passive)
+	assert.Equal(t, (20*time.Minute)+(20*time.Second), cfg.Period)
+}
+
+// parsing a good YAML string succeeds
 func TestFromYaml(t *testing.T) {
-	cfg := Test{}
+	cfg := TestYaml{}
 	err := FromYaml([]byte(yml), &cfg)
 	assert.Nil(t, err, "Expected no error")
 	assert.NotNil(t, cfg)
@@ -65,9 +138,9 @@ func TestFromYaml(t *testing.T) {
 	assert.Equal(t, (2*time.Minute)+(22*time.Second), cfg.Period)
 }
 
-// bad YAML string
+// parsing a bad YAML string fails
 func TestFromYamlBad(t *testing.T) {
-	cfg := Test{}
+	cfg := TestYaml{}
 	err := FromYaml([]byte(notYml), &cfg)
 	assert.NotNil(t, err, "Expected an error because of bad YAML")
 	assert.Equal(t, "", cfg.Address)
@@ -76,7 +149,7 @@ func TestFromYamlBad(t *testing.T) {
 	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-// good YAML file
+// parsing a good YAML file succeeds
 func TestFromYamlFile(t *testing.T) {
 	file, err := ioutil.TempFile(".", "yaml_test")
 	assert.Nil(t, err, "Got error trying to create temporary YAML file")
@@ -89,7 +162,7 @@ func TestFromYamlFile(t *testing.T) {
 	assert.Equal(t, len(yml), l, "Mismatched bytes written to temporary YAML file")
 	assert.FileExists(t, file.Name(), "Temporary YAML file doesn't exist")
 
-	cfg := Test{}
+	cfg := TestYaml{}
 	err = FromYamlFile(file.Name(), &cfg)
 	assert.Nil(t, err, "Expected no error")
 	assert.NotNil(t, cfg)
@@ -99,7 +172,7 @@ func TestFromYamlFile(t *testing.T) {
 	assert.Equal(t, (2*time.Minute)+(22*time.Second), cfg.Period)
 }
 
-// bad YAML file
+// parsing a bad YAML file fails
 func TestFromYamlFileBad(t *testing.T) {
 	file, err := ioutil.TempFile(".", "yaml_test_bad")
 	assert.Nil(t, err, "Got error trying to create temporary YAML file")
@@ -112,7 +185,7 @@ func TestFromYamlFileBad(t *testing.T) {
 	assert.Equal(t, len(notYml), l, "Mismatched bytes written to temporary YAML file")
 	assert.FileExists(t, file.Name(), "Temporary YAML file doesn't exist")
 
-	cfg := Test{}
+	cfg := TestYaml{}
 	err = FromYamlFile(file.Name(), &cfg)
 	assert.NotNil(t, err, "Expected an error")
 	assert.Equal(t, "", cfg.Address)
@@ -121,9 +194,9 @@ func TestFromYamlFileBad(t *testing.T) {
 	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-// missing YAML file
+// trying to parse a missing YAML file fails
 func TestFromYamlFileNoFile(t *testing.T) {
-	cfg := Test{}
+	cfg := TestYaml{}
 	err := FromYamlFile("bogus_file_name", &cfg)
 	assert.NotNil(t, err, "Expected an error")
 	assert.Equal(t, "", cfg.Address)
@@ -132,10 +205,10 @@ func TestFromYamlFileNoFile(t *testing.T) {
 	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-// config struct to YAML string
+// parse a YAML string into a config struct
 func TestToYaml(t *testing.T) {
 	tm, _ := time.ParseDuration("2m22s")
-	cfg := Test{
+	cfg := TestYaml{
 		Address: "http://example.com/",
 		Count:   23,
 		Passive: false,
@@ -147,15 +220,15 @@ func TestToYaml(t *testing.T) {
 	assert.Equal(t, yml, s)
 }
 
-// env vars exist
+// parse environment variables into config struct members
 func TestFromEnvironment(t *testing.T) {
-	os.Setenv("FUNAPP_ADDRESS", "http://example.com/funapp")
-	os.Setenv("FUNAPP_COUNT", "34")
-	os.Setenv("FUNAPP_PASSIVE", "true")
-	os.Setenv("FUNAPP_PERIOD", "11h11m11s")
+	os.Setenv("ADDRESS", "http://example.com/funapp")
+	os.Setenv("COUNT", "34")
+	os.Setenv("PASSIVE", "true")
+	os.Setenv("PERIOD", "11h11m11s")
 
-	cfg := Test{}
-	err := FromEnvironment("FUNAPP", &cfg)
+	cfg := TestEnvironment{}
+	err := FromEnvironment(&cfg)
 	assert.Nil(t, err, "Expected no error")
 	assert.NotNil(t, cfg)
 	assert.Equal(t, "http://example.com/funapp", cfg.Address)
@@ -164,15 +237,15 @@ func TestFromEnvironment(t *testing.T) {
 	assert.Equal(t, (11*time.Hour)+(11*time.Minute)+(11*time.Second), cfg.Period)
 }
 
-// only required are set, rest should be default values
+// verify no matching environment variables leaves struct members untouched
 func TestFromEnvironmentDefault(t *testing.T) {
-	os.Unsetenv("FUNAPP_ADDRESS")
-	os.Unsetenv("FUNAPP_COUNT")
-	os.Unsetenv("FUNAPP_PASSIVE")
-	os.Unsetenv("FUNAPP_PERIOD")
+	os.Unsetenv("ADDRESS")
+	os.Unsetenv("COUNT")
+	os.Unsetenv("PASSIVE")
+	os.Unsetenv("PERIOD")
 
-	cfg := Test{}
-	err := FromEnvironment("FUNAPP", &cfg)
+	cfg := TestEnvironment{}
+	err := FromEnvironment(&cfg)
 	assert.Nil(t, err)
 	assert.Equal(t, "", cfg.Address)
 	assert.Equal(t, 0, cfg.Count)
@@ -180,18 +253,7 @@ func TestFromEnvironmentDefault(t *testing.T) {
 	assert.Equal(t, time.Duration(0), cfg.Period)
 }
 
-type cfg struct {
-	Address string        `yaml:"address"`
-	Timeout time.Duration `yaml:"timeout"`
-	Sub     sub
-}
-
-type sub struct {
-	Enabled bool `yaml:"enabled"`
-	Level   int  `yaml:"level"`
-}
-
-// from command line arguments
+// parse from command line arguments into struct members
 func TestFromArguments(t *testing.T) {
 	os.Args = []string{
 		"Address=http://example.com",
@@ -200,7 +262,7 @@ func TestFromArguments(t *testing.T) {
 		"Sub.Level=42",
 	}
 
-	c := cfg{}
+	c := TestArguments{}
 	err := FromArguments(os.Args, &c)
 	assert.Nil(t, err)
 	assert.Equal(t, "http://example.com", c.Address)
@@ -209,13 +271,13 @@ func TestFromArguments(t *testing.T) {
 	assert.Equal(t, 42, c.Sub.Level)
 }
 
-// from command line arguments, that invalid parameter format is ignored
+// parse from command line arguments, verify that an invalid command line parameter (: instead of =) is ignored
 func TestFromArgumentsInvalidParameter(t *testing.T) {
 	os.Args = []string{
 		"Address:http://example.com",
 	}
 
-	c := cfg{}
+	c := TestArguments{}
 	err := FromArguments(os.Args, &c)
 	assert.Nil(t, err)
 	assert.Equal(t, "", c.Address)
@@ -224,13 +286,13 @@ func TestFromArgumentsInvalidParameter(t *testing.T) {
 	assert.Equal(t, 0, c.Sub.Level)
 }
 
-// non-existant struct field name
+// verify that a non-matching command line parameter is ignored
 func TestFromArgumentsInvalidFieldName(t *testing.T) {
 	os.Args = []string{
-		"Hey_dress=http://example.com",
+		"Red_dress=http://example.com",
 	}
 
-	c := cfg{}
+	c := TestArguments{}
 	err := FromArguments(os.Args, &c)
 	assert.NotNil(t, err)
 	assert.Equal(t, "", c.Address)
@@ -239,13 +301,13 @@ func TestFromArgumentsInvalidFieldName(t *testing.T) {
 	assert.Equal(t, 0, c.Sub.Level)
 }
 
-// non-parsable parameter value for the type
+// verify an invalid (non-parsable for the type) command line parameter value is ignored
 func TestFromArgumentsInvalidValue(t *testing.T) {
 	os.Args = []string{
 		"Timeout=SomeTime",
 	}
 
-	c := cfg{}
+	c := TestArguments{}
 	err := FromArguments(os.Args, &c)
 	assert.NotNil(t, err)
 	assert.Equal(t, "", c.Address)

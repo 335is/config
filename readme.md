@@ -1,7 +1,8 @@
 # Config
 
-Config loads configuration settings into a struct from the following sources in this order.
+Loads configuration settings into a struct from the following sources in this order.
 
+1. default specified in struct tag
 1. config.yml YAML file
 1. environment variables
 1. command line parameters
@@ -10,30 +11,25 @@ Each source successively overrides the previous ones.
 
 Nested structs are supported as each setting specifies its full path to the associated struct field.
 
-## Requirements
-
-### Go 1.15
-
 ## How to Use
 
 See the examples folder and the unit tests for how to define and consume your configuration.
 
-## Samples
+### Config Struct
 
-### Struct
-
-The following cfg struct will contain our settings.
+The following config struct will contain our settings.
+Note the default values defined in the struct tags.
 
 ```go
 var cfg struct {
-	Address string        `yaml:"address"`
-	Timeout time.Duration `yaml:"timeout"`
+	Address string        `yaml:"address" default:"localhost"`
+	Timeout time.Duration `yaml:"timeout" default:"5m"`
 }
 ```
 
 ### YAML File
 
-A config.yml file overrides.
+config.yml file overrides any struct defaults.
 
 ```yaml
 ---
@@ -43,16 +39,16 @@ timeout: 1m
 
 ### Environment Variables
 
-Environment variables overrides.
+Environment variables override any matching config.yml file values.
 
 ```bash
-export MYAPP_ADDRESS=http://example.com/funapp
-export MYAPP_TIMEOUT=1m30s
+export ADDRESS=http://example.com/funapp
+export TIMEOUT=1m30s
 ```
 
 ### Command Line Arguments
 
-Command line arguments overrides.
+Command line arguments override any matching environment variables.
 
 ```bash
 ./myapp address=http://example.com/home timeout=2m

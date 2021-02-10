@@ -9,14 +9,14 @@ import (
 )
 
 type cfg struct {
-	Address string        `yaml:"address"`
-	Timeout time.Duration `yaml:"timeout"`
+	Address string
+	Timeout time.Duration
 	Sub     sub
 }
 
 type sub struct {
-	Enabled bool `yaml:"enabled"`
-	Level   int  `yaml:"level"`
+	Enabled bool
+	Level   int
 }
 
 func main() {
