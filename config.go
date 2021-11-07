@@ -78,7 +78,7 @@ func FromArguments(args []string, v interface{}) error {
 		key := strings.ReplaceAll(kv[0], "_", ".")
 
 		// find struct member matching key path
-		value, err := lookup.LookupString(v, key)
+		value, err := lookup.LookupStringI(v, key)
 		if err != nil {
 			return err
 		}
