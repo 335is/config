@@ -23,6 +23,17 @@ type TestDefaults struct {
 	Period  time.Duration `default:"20m20s"`
 }
 
+type TestDefaultsNested struct {
+	Address string        `yaml:"address" default:"https://dosan.com/"`
+	Timeout time.Duration `yaml:"timeout" default:"11m11s"`
+	Sub     SubNested
+}
+
+type SubNested struct {
+	Enabled bool `yaml:"enabled" default:"true"`
+	Level   int  `yaml:"level" default:"77"`
+}
+
 type TestYaml struct {
 	Address string        `yaml:"address"`
 	Count   int           `yaml:"count"`
@@ -115,15 +126,15 @@ func TestFromStructDefaultsWithInitialization(t *testing.T) {
 	assert.Equal(t, tm, cfg.Period)
 }
 
-func TestFromStructDefaults(t *testing.T) {
-	cfg := TestDefaults{}
+func TestFromStructDefaultsNested(t *testing.T) {
+	cfg := TestDefaultsNested{}
 	err := FromStructDefaults(&cfg)
+
 	assert.Nil(t, err, "Expected no error")
-	assert.NotNil(t, cfg)
-	assert.Equal(t, "http://stonewall.net", cfg.Address)
-	assert.Equal(t, 27, cfg.Count)
-	assert.Equal(t, true, cfg.Passive)
-	assert.Equal(t, (20*time.Minute)+(20*time.Second), cfg.Period)
+	assert.Equal(t, "https://dosan.com/", cfg.Address)
+	assert.Equal(t, (11*time.Minute)+(11*time.Second), cfg.Timeout)
+	assert.Equal(t, true, cfg.Sub.Enabled)
+	assert.Equal(t, 77, cfg.Sub.Level)
 }
 
 // parsing a good YAML string succeeds

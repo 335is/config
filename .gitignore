@@ -13,3 +13,6 @@
 
 # skip all vendor packages
 vendor/
+
+# Visual Studio Code settings
+.vs

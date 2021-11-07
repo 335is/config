@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	defaults "github.com/mcuadros/go-defaults"
+	"github.com/creasty/defaults"
 	"github.com/mcuadros/go-lookup"
 	"github.com/vrischmann/envconfig"
 	yaml "gopkg.in/yaml.v2"
@@ -37,8 +37,7 @@ func Load(file string, v interface{}) {
 
 // FromStructDefaults initializes struct members from "default:" struc tags
 func FromStructDefaults(v interface{}) error {
-	defaults.SetDefaults(v)
-	return nil
+	return defaults.Set(v)
 }
 
 // FromYaml extracts settings from a YAML string.
